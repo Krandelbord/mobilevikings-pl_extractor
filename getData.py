@@ -30,12 +30,15 @@ def extract_csv(username, password, start_date, end_date):
     'ordering=asc&start='+start_date.strftime(DATE_FORMAT)+
     '&end='+end_date.strftime(DATE_FORMAT)+'&type=usage&period=custom')
     csv_response.encoding = 'utf-8'
-
-    out_csv_file_name = str(datetime.datetime.today().strftime(DATETIME_FORMAT))+\
-    '_FROM-'+start_date.strftime(DATE_FORMAT)+'_TO-'+end_date.strftime(DATE_FORMAT)+'.csv'
-    with open(out_csv_file_name, 'w') as out_csv_file:
-        out_csv_file.write(csv_response.text)
-        print("saved to file "+out_csv_file_name)
+    if csv_response.headers['Content-Type'] != 'text/csv':
+        print("Resulting output is not CSV")
+        print(csv_response.text)
+    else:
+        out_csv_file_name = str(datetime.datetime.today().strftime(DATETIME_FORMAT))+\
+        '_FROM-'+start_date.strftime(DATE_FORMAT)+'_TO-'+end_date.strftime(DATE_FORMAT)+'.csv'
+        with open(out_csv_file_name, 'w') as out_csv_file:
+            out_csv_file.write(csv_response.text)
+            print("saved to file "+out_csv_file_name)
 
 begining_of_the_month = begining_of_the_month()
 parser = argparse.ArgumentParser(description='Downloads history from mobielvikings.pl')
