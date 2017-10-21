@@ -15,7 +15,7 @@ def begining_of_the_month():
 def extract_csv(username, password, start_date, end_date):
     BASE_URL = 'https://mobilevikings.pl/pl'
     LOGIN_PAGE_URL = BASE_URL+'/account/login/'
-    URL_TO_READ = BASE_URL+'/mysims/sim/51217/balance'
+    URL_TO_READ = BASE_URL+'/mysims/sim/'+SIM_CARD_ID_TO_USE+'/balance'
 
     client = requests.session()
 
@@ -41,7 +41,7 @@ def extract_csv(username, password, start_date, end_date):
             print("saved to file "+out_csv_file_name)
 
 begining_of_the_month = begining_of_the_month()
-parser = argparse.ArgumentParser(description='Downloads history from mobielvikings.pl')
+parser = argparse.ArgumentParser(description='Downloads history from mobilevikings.pl')
 parser.add_argument('--user', help='username to use', required = True)
 parser.add_argument('--password', help='password to use', required = True)
 parser.add_argument('--start_date', help='start date to read history or 1st day of month will be used',
