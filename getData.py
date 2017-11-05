@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 import argparse
-import sys
-import requests
 import datetime
+import re
+
+import requests
 
 BASE_URL = 'https://mobilevikings.pl/pl'
 DATE_FORMAT = '%Y-%m-%d'
@@ -11,15 +12,17 @@ SIM_CARD_ID_TO_USE = '51217'
 
 
 def html_div_to_sim_card(html_div):
-    phone_no = re.compile('.+<img.+/>(.+)</div>', re.MULTILINE | re.DOTALL).findall(html_div)[0].replace('\n',
-                                                                                                         '').strip()
-    sim_card_id = re.compile('.+routeParams\.subId == (\d+).+', re.MULTILINE | re.DOTALL).findall(oneSimCard)[0]
+    phone_no = re.compile('.+<img.+/>(.+)</div>', re.MULTILINE | re.DOTALL).findall(html_div)[0]\
+        .replace('\n','').strip()
+    sim_card_id = re.compile('.+routeParams\.subId == (\d+).+', re.MULTILINE | re.DOTALL).findall(html_div)[0]
+    print("Phone "+phone_no+" and sim id is "+sim_card_id)
 
 
 def find_all_sim_cards(client):
     # extracts all sim cards
-    get_mysims_response = client.get(BASE_URL + '/mysims/')
-    if (get_mysims_response.status_code == 200):
+    get_mysims_response = client.get(BASE_URL + '/mysims')
+    print('get_mysims_response.status_code', get_mysims_response.status_code)
+    if get_mysims_response.status_code == 200:
         sim_cards_html = re.compile('href="sim/\d+/(.*?)</a>', re.MULTILINE | re.DOTALL).findall(
             get_mysims_response.text)
         for one_sim_card_html in sim_cards_html:
@@ -34,10 +37,7 @@ def begining_of_the_month():
     return datetime.date(now.year, now.month, 1)
 
 
-def extract_csv(username, password, start_date, end_date):
-    URL_TO_READ = BASE_URL + '/mysims/sim/' + SIM_CARD_ID_TO_USE + '/balance'
-
-    client = login_user(password, username)
+def extract_csv(client, start_date, end_date):
     csv_response = client.get(
         BASE_URL + '/mysims/partials/' + SIM_CARD_ID_TO_USE + '/ng_history.html?export_format=csv&' +
         'ordering=asc&start=' + start_date.strftime(DATE_FORMAT) +
@@ -55,7 +55,7 @@ def extract_csv(username, password, start_date, end_date):
             print("saved to file " + out_csv_file_name)
 
 
-def login_user(password, username):
+def login_user(username, password):
     login_page_url = BASE_URL + '/account/login/'
     client = requests.session()
     # Retrieve the CSRF token first
@@ -64,6 +64,10 @@ def login_user(password, username):
     login_data = dict(username=username, password=password, csrfmiddlewaretoken=csrftoken, next='/')
     r = client.post(login_page_url, data=login_data, headers=dict(Referer=login_page_url))
     print("Login response is ", r)
+    errors_found = re.compile('<div class="messages">(.+?)</div>', re.MULTILINE | re.DOTALL)\
+        .findall(r.text)
+    if len(errors_found) > 0 and len(errors_found[0].strip()) > 0:
+        raise RuntimeError("Error while logging in "+errors_found[0].strip())
     return client
 
 
@@ -75,4 +79,6 @@ parser.add_argument('--start_date', help='start date to read history or 1st day 
                     default=begining_of_the_month, type=lambda d: datetime.datetime.strptime(d, DATE_FORMAT))
 
 args = parser.parse_args()
-extract_csv(args.user, args.password, args.start_date, datetime.date.today())
+http_client = login_user(args.user, args.password)
+extract_csv(http_client, args.start_date, datetime.date.today())
+find_all_sim_cards(http_client)
