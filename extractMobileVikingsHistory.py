@@ -21,7 +21,6 @@ def html_div_to_sim_card(html_div):
 def find_all_sim_cards(client):
     # extracts all sim cards
     get_mysims_response = client.get(BASE_URL + '/mysims')
-    print('get_mysims_response.status_code', get_mysims_response.status_code)
     found_sim_cards = list()
     if get_mysims_response.status_code == 200:
         sim_cards_html = re.compile('href="sim/\d+/(.*?)</a>', re.MULTILINE | re.DOTALL).findall(
@@ -70,7 +69,6 @@ def login_user(username, password):
     csrftoken = client.cookies['csrftoken']
     login_data = dict(username=username, password=password, csrfmiddlewaretoken=csrftoken, next='/')
     r = client.post(login_page_url, data=login_data, headers=dict(Referer=login_page_url))
-    print("Login response is ", r)
     errors_found = re.compile('<div class="messages">(.+?)</div>', re.MULTILINE | re.DOTALL) \
         .findall(r.text)
     if len(errors_found) > 0 and len(errors_found[0].strip()) > 0:
@@ -89,5 +87,5 @@ args = parser.parse_args()
 http_client = login_user(args.user, args.password)
 all_sim_cards = find_all_sim_cards(http_client)
 for one_sim_card in all_sim_cards:
-    print("Extracting data for sim card ", one_sim_card)
+    print("Extracting data for sim card ", one_sim_card['phone_no'])
     extract_csv(http_client, args.start_date, datetime.date.today(), one_sim_card)
